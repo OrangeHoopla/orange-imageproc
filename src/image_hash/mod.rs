@@ -10,4 +10,6 @@ mod signals;
 use bits::Bits64;
 
 pub use average_hash::{average_hash, AverageHash};
-pub use phash::{phash, PHash};
+#[cfg(feature = "fft")]
+pub use phash::phash;
+pub use phash::PHash;
