@@ -1,6 +1,6 @@
-use super::{signals, Bits64};
+use super::{Bits64, signals};
 use crate::definitions::Image;
-use image::{imageops, math::Rect, Luma};
+use image::{Luma, imageops, math::Rect};
 use std::borrow::Cow;
 
 /// Stores the result of the [`phash`].
@@ -121,7 +121,7 @@ mod proptests {
         #[test]
         fn proptest_phash(img in arbitrary_image(0..N, 0..N)) {
             let hash = phash(&img);
-            assert_eq!(0, hash.hamming_distance(hash));
+            prop_assert_eq!(0, hash.hamming_distance(hash));
         }
     }
 }
@@ -131,7 +131,7 @@ mod proptests {
 mod benches {
     use super::*;
     use crate::utils::luma32f_bench_image;
-    use test::{black_box, Bencher};
+    use test::{Bencher, black_box};
 
     const N: u32 = 600;
 

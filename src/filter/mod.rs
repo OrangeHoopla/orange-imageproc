@@ -52,11 +52,10 @@ where
                     let x_p = min(width - 1, max(0, x + k_x - k_width / 2)) as u32;
 
                     debug_assert!(image.in_bounds(x_p, y_p));
-                    accumulate(
-                        &mut acc,
-                        unsafe { &image.unsafe_get_pixel(x_p, y_p) },
-                        unsafe { kernel.get_unchecked(k_x as u32, k_y as u32) },
-                    );
+                    let pixel = unsafe { image.unsafe_get_pixel(x_p, y_p) };
+                    accumulate(&mut acc, &pixel, unsafe {
+                        kernel.get_unchecked(k_x as u32, k_y as u32)
+                    });
                 }
             }
             let out_channels = out.get_pixel_mut(x as u32, y as u32).channels_mut();
@@ -102,11 +101,10 @@ where
                         let x_p = min(width - 1, max(0, x + k_x - k_width / 2)) as u32;
 
                         debug_assert!(image.in_bounds(x_p, y_p));
-                        accumulate(
-                            &mut acc,
-                            unsafe { &image.unsafe_get_pixel(x_p, y_p) },
-                            unsafe { kernel.get_unchecked(k_x as u32, k_y as u32) },
-                        );
+                        let pixel = unsafe { image.unsafe_get_pixel(x_p, y_p) };
+                        accumulate(&mut acc, &pixel, unsafe {
+                            kernel.get_unchecked(k_x as u32, k_y as u32)
+                        });
                     }
                 }
                 for (a, c) in acc.iter_mut().zip(out_pixel.iter_mut()) {
@@ -577,6 +575,7 @@ mod tests {
 
     macro_rules! test_against_reference_implementation {
         ($test_name:ident, $under_test:ident, $reference_impl:ident) => {
+            #[cfg_attr(miri, ignore = "slow")]
             #[test]
             fn $test_name() {
                 // I think the interesting edge cases here are determined entirely
@@ -797,6 +796,7 @@ mod tests {
         let _ = gaussian_blur_f32(&image, -0.5);
     }
 
+    #[cfg_attr(miri, ignore = "assert fails")]
     #[test]
     fn test_gaussian_on_u8_white_idempotent() {
         let image = Image::<Luma<u8>>::from_pixel(12, 12, Luma([255]));
@@ -826,7 +826,7 @@ mod proptests {
             sigma in (0.0..150f32).prop_filter("contract", |&x| x > 0.0),
         ) {
             let out = gaussian_blur_f32(&img, sigma);
-            assert_eq!(out.dimensions(), img.dimensions());
+            prop_assert_eq!(out.dimensions(), img.dimensions());
         }
 
         #[test]
@@ -838,7 +838,7 @@ mod proptests {
             let out: Image<Luma<f32>> = filter(&img, kernel, |x| {
                 x
             });
-            assert_eq!(out.dimensions(), img.dimensions());
+            prop_assert_eq!(out.dimensions(), img.dimensions());
         }
 
         #[test]
@@ -847,7 +847,7 @@ mod proptests {
             ker in proptest::collection::vec(any::<f32>(), 0..50),
         ) {
             let out = horizontal_filter(&img, &ker);
-            assert_eq!(out.dimensions(), img.dimensions());
+            prop_assert_eq!(out.dimensions(), img.dimensions());
         }
 
         #[test]
@@ -856,7 +856,7 @@ mod proptests {
             ker in proptest::collection::vec(any::<f32>(), 0..50),
         ) {
             let out = vertical_filter(&img, &ker);
-            assert_eq!(out.dimensions(), img.dimensions());
+            prop_assert_eq!(out.dimensions(), img.dimensions());
         }
 
         #[test]
@@ -864,7 +864,7 @@ mod proptests {
             img in arbitrary_image::<Luma<u8>>(0..120, 0..120),
         ) {
             let out = laplacian_filter(&img);
-            assert_eq!(out.dimensions(), img.dimensions());
+            prop_assert_eq!(out.dimensions(), img.dimensions());
         }
     }
 }
@@ -877,7 +877,7 @@ mod benches {
     use crate::utils::{gray_bench_image, rgb_bench_image};
     use image::imageops::blur;
     use image::{GenericImage, Luma, Rgb};
-    use test::{black_box, Bencher};
+    use test::{Bencher, black_box};
 
     #[bench]
     fn bench_separable_filter(b: &mut Bencher) {

@@ -483,6 +483,20 @@ mod tests {
     }
 
     #[test]
+    fn test_integral_squared_image_gray() {
+        let image = gray_image!(
+            1, 2, 3;
+            4, 5, 6);
+
+        let expected = gray_image!(type: u32,
+            0,  0,  0,  0;
+            0,  1,  5, 14;
+            0, 17, 46, 91);
+
+        assert_pixels_eq!(integral_squared_image::<_, u32>(&image), expected);
+    }
+
+    #[test]
     fn test_integral_image_rgb() {
         let image = rgb_image!(
             [1, 11, 21], [2, 12, 22], [3, 13, 23];
@@ -616,7 +630,7 @@ mod proptests {
             let expected = integral_image_ref(&image);
             let actual = integral_image(&image);
 
-            assert_eq!(expected, actual);
+            prop_assert_eq!(expected, actual);
         }
 
         #[test]
@@ -624,7 +638,7 @@ mod proptests {
             image in arbitrary_image::<Luma<u8>>(0..10, 1..10),
             padding in 0..10u32,
         ) {
-            assert!(image.height() > 0);
+            prop_assert!(image.height() > 0);
             let mut actual = vec![0u32; (image.height() + 2 * padding) as usize];
             let mut expected = actual.clone();
 
@@ -634,7 +648,7 @@ mod proptests {
 
                 column_running_sum(&image, col, &mut actual, padding);
                 column_running_sum_reference(&image, col, &mut expected, padding);
-                assert_eq!(actual, expected);
+                prop_assert_eq!(&actual, &expected);
             }
         }
     }

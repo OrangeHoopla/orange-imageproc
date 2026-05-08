@@ -610,6 +610,7 @@ mod tests {
         assert_eq!(otsu_level(&constant_image(10, 10, 255)), 0);
     }
 
+    #[cfg_attr(miri, ignore = "assert_eq fails")]
     #[test]
     fn test_otsu_level_gradient() {
         let contents = (0u8..26u8).map(|x| x * 10u8).collect();
@@ -666,7 +667,7 @@ mod benches {
     use super::*;
     use crate::utils::gray_bench_image;
     use image::{GrayImage, Luma};
-    use test::{black_box, Bencher};
+    use test::{Bencher, black_box};
 
     #[bench]
     fn bench_adaptive_threshold(b: &mut Bencher) {

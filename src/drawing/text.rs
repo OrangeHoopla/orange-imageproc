@@ -5,7 +5,7 @@ use crate::definitions::{Clamp, Image};
 use crate::drawing::Canvas;
 use crate::pixelops::weighted_sum;
 
-use ab_glyph::{point, Font, GlyphId, OutlinedGlyph, PxScale, Rect, ScaleFont};
+use ab_glyph::{Font, GlyphId, OutlinedGlyph, PxScale, Rect, ScaleFont, point};
 
 fn layout_glyphs(
     scale: impl Into<PxScale> + Copy,
@@ -98,10 +98,18 @@ pub fn draw_text_mut<C>(
             if (0..image_width).contains(&image_x) && (0..image_height).contains(&image_y) {
                 let image_x = image_x as u32;
                 let image_y = image_y as u32;
-                let pixel = canvas.get_pixel(image_x, image_y);
+                let mut pixel = canvas.get_pixel(image_x, image_y);
                 let gv = gv.clamp(0.0, 1.0);
-                let weighted_color = weighted_sum(pixel, color, 1.0 - gv, gv);
-                canvas.draw_pixel(image_x, image_y, weighted_color);
+
+                if C::Pixel::HAS_ALPHA {
+                    let color = color.map_with_alpha(|f| f, |g| Clamp::clamp(g.into() * gv));
+
+                    pixel.blend(&color);
+                } else {
+                    pixel = weighted_sum(pixel, color, 1.0 - gv, gv);
+                }
+
+                canvas.draw_pixel(image_x, image_y, pixel);
             }
         })
     });
@@ -152,7 +160,7 @@ mod proptests {
             };
             for (px, py, &p) in img.enumerate_pixels() {
                 if !rect.contains(px as i32, py as i32) {
-                    assert_eq!(p, background, "pixel_position: {:?}, rect: {:?}", (px, py), rect);
+                    prop_assert_eq!(p, background, "pixel_position: {:?}, rect: {:?}", (px, py), rect);
                 }
             }
         }

@@ -1,6 +1,6 @@
 use crate::definitions::Image;
-use crate::drawing::line::{draw_antialiased_line_segment_mut, draw_line_segment_mut};
 use crate::drawing::Canvas;
+use crate::drawing::line::{draw_antialiased_line_segment_mut, draw_line_segment_mut};
 use crate::point::Point;
 use image::GenericImage;
 use std::cmp::{max, min};
@@ -217,5 +217,105 @@ where
         let start = (edge[0].x as f32, edge[0].y as f32);
         let end = (edge[1].x as f32, edge[1].y as f32);
         plotter(canvas, start, end, color);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{draw_antialiased_polygon, draw_hollow_polygon, draw_polygon};
+    use crate::point::Point;
+    use image::{GrayImage, Luma};
+
+    #[test]
+    fn test_draw_polygon() {
+        let background = 1u8;
+        let fill = 4u8;
+        let size = 5u32;
+        let left = 1;
+        let right = 3;
+        let top = 1;
+        let bottom = 3;
+
+        let image = GrayImage::from_pixel(size, size, Luma([background]));
+        let poly = [
+            Point::new(left, top),
+            Point::new(right, top),
+            Point::new(right, bottom),
+            Point::new(left, bottom),
+        ];
+
+        let expected = gray_image!(
+            background, background, background, background, background;
+            background, fill, fill, fill, background;
+            background, fill, fill, fill, background;
+            background, fill, fill, fill, background;
+            background, background, background, background, background);
+
+        let actual = draw_polygon(&image, &poly, Luma([fill]));
+
+        assert_pixels_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_draw_antialiased_polygon() {
+        use crate::pixelops::interpolate;
+
+        let background = 1u8;
+        let fill = 5u8;
+        let size = 5u32;
+        let left = 1;
+        let right = 3;
+        let top = 1;
+        let bottom = 3;
+
+        let image = GrayImage::from_pixel(size, size, Luma([background]));
+        let poly = [
+            Point::new(left, top),
+            Point::new(right, top),
+            Point::new(right, bottom),
+            Point::new(left, bottom),
+        ];
+
+        let expected = gray_image!(
+            background, background, background, background, background;
+            background, fill, fill, fill, background;
+            background, fill, fill, fill, background;
+            background, fill, fill, fill, background;
+            background, background, background, background, background);
+
+        let actual = draw_antialiased_polygon(&image, &poly, Luma([fill]), interpolate);
+
+        assert_pixels_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_draw_hollow_polygon() {
+        let background = 1u8;
+        let outline = 8u8;
+        let size = 5u32;
+        let left = 1.0;
+        let right = 3.0;
+        let top = 1.0;
+        let bottom = 3.0;
+
+        let image = GrayImage::from_pixel(size, size, Luma([background]));
+        let poly = [
+            Point::new(left, top),
+            Point::new(right, top),
+            Point::new(right, bottom),
+            Point::new(left, bottom),
+        ];
+
+        let expected = gray_image!(
+            background, background, background, background, background;
+            background, outline, outline, outline, background;
+            background, outline, background, outline, background;
+            background, outline, outline, outline, background;
+            background, background, background, background, background);
+
+        let mut actual = image.clone();
+        let actual = draw_hollow_polygon(&mut actual, &poly, Luma([outline]));
+
+        assert_pixels_eq!(actual, expected);
     }
 }

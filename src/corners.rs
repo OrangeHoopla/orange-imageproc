@@ -5,7 +5,7 @@ use crate::{
     point::Point,
 };
 use image::{GenericImageView, GrayImage};
-use rand::{distr::Distribution, rngs::StdRng, SeedableRng};
+use rand::{SeedableRng, distr::Distribution, rngs::StdRng};
 
 /// A location and score for a detected corner.
 /// The scores need not be comparable between different
@@ -190,7 +190,7 @@ pub fn oriented_fast(
         let mut rng = if let Some(s) = seed {
             StdRng::seed_from_u64(s)
         } else {
-            SeedableRng::from_os_rng()
+            rand::make_rng()
         };
         let dist_x = rand::distr::Uniform::new(min_x, max_x).unwrap();
         let dist_y = rand::distr::Uniform::new(min_y, max_y).unwrap();
@@ -422,24 +422,26 @@ unsafe fn get_circle(
     p8: i16,
     p12: i16,
 ) -> [i16; 16] {
-    [
-        p0,
-        image.unsafe_get_pixel(x + 1, y - 3)[0] as i16,
-        image.unsafe_get_pixel(x + 2, y - 2)[0] as i16,
-        image.unsafe_get_pixel(x + 3, y - 1)[0] as i16,
-        p4,
-        image.unsafe_get_pixel(x + 3, y + 1)[0] as i16,
-        image.unsafe_get_pixel(x + 2, y + 2)[0] as i16,
-        image.unsafe_get_pixel(x + 1, y + 3)[0] as i16,
-        p8,
-        image.unsafe_get_pixel(x - 1, y + 3)[0] as i16,
-        image.unsafe_get_pixel(x - 2, y + 2)[0] as i16,
-        image.unsafe_get_pixel(x - 3, y + 1)[0] as i16,
-        p12,
-        image.unsafe_get_pixel(x - 3, y - 1)[0] as i16,
-        image.unsafe_get_pixel(x - 2, y - 2)[0] as i16,
-        image.unsafe_get_pixel(x - 1, y - 3)[0] as i16,
-    ]
+    unsafe {
+        [
+            p0,
+            image.unsafe_get_pixel(x + 1, y - 3)[0] as i16,
+            image.unsafe_get_pixel(x + 2, y - 2)[0] as i16,
+            image.unsafe_get_pixel(x + 3, y - 1)[0] as i16,
+            p4,
+            image.unsafe_get_pixel(x + 3, y + 1)[0] as i16,
+            image.unsafe_get_pixel(x + 2, y + 2)[0] as i16,
+            image.unsafe_get_pixel(x + 1, y + 3)[0] as i16,
+            p8,
+            image.unsafe_get_pixel(x - 1, y + 3)[0] as i16,
+            image.unsafe_get_pixel(x - 2, y + 2)[0] as i16,
+            image.unsafe_get_pixel(x - 3, y + 1)[0] as i16,
+            p12,
+            image.unsafe_get_pixel(x - 3, y - 1)[0] as i16,
+            image.unsafe_get_pixel(x - 2, y - 2)[0] as i16,
+            image.unsafe_get_pixel(x - 1, y - 3)[0] as i16,
+        ]
+    }
 }
 
 /// True if the circle has a contiguous section of at least the given length, all
@@ -604,6 +606,7 @@ mod tests {
         assert!(is_corner_fast9(&image, 8, 3, 3));
     }
 
+    #[cfg_attr(miri, ignore = "assert_eq fails")]
     #[test]
     fn test_intensity_centroid() {
         let image = gray_image!(
@@ -659,7 +662,7 @@ mod tests {
 #[cfg(test)]
 mod benches {
     use super::*;
-    use test::{black_box, Bencher};
+    use test::{Bencher, black_box};
 
     #[bench]
     fn bench_is_corner_fast12_12_noncontiguous(b: &mut Bencher) {

@@ -1,7 +1,7 @@
 use crate::definitions::Image;
+use crate::drawing::Canvas;
 use crate::drawing::draw_if_in_bounds;
 use crate::drawing::line::draw_line_segment_mut;
-use crate::drawing::Canvas;
 use image::GenericImage;
 
 /// Draws the outline of an ellipse on an image.
@@ -282,8 +282,11 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::draw_filled_ellipse_mut;
-    use image::GenericImage;
+    use super::{
+        draw_filled_circle, draw_filled_circle_mut, draw_filled_ellipse, draw_filled_ellipse_mut,
+        draw_hollow_circle, draw_hollow_circle_mut, draw_hollow_ellipse,
+    };
+    use image::{GenericImage, GrayImage, Luma};
 
     struct Ellipse {
         center: (i32, i32),
@@ -350,6 +353,136 @@ mod tests {
         );
         const EPS: f32 = 0.0019;
         check_filled_ellipse(&img, ellipse, inner_color, outer_color, EPS);
+    }
+
+    #[test]
+    fn test_draw_hollow_ellipse_matches_circle_when_radii_equal() {
+        let background = 1u8;
+        let shape = 7u8;
+        let size = 7u32;
+        let center = (3, 3);
+        let radius = 2;
+
+        let image = GrayImage::from_pixel(size, size, Luma([background]));
+        let ellipse = draw_hollow_ellipse(&image, center, radius, radius, Luma([shape]));
+        let circle = draw_hollow_circle(&image, center, radius, Luma([shape]));
+
+        assert_pixels_eq!(ellipse, circle);
+    }
+
+    #[test]
+    fn test_draw_filled_ellipse_matches_circle_when_radii_equal() {
+        let background = 1u8;
+        let shape = 7u8;
+        let size = 7u32;
+        let center = (3, 3);
+        let radius = 2;
+
+        let image = GrayImage::from_pixel(size, size, Luma([background]));
+        let ellipse = draw_filled_ellipse(&image, center, radius, radius, Luma([shape]));
+        let circle = draw_filled_circle(&image, center, radius, Luma([shape]));
+
+        assert_pixels_eq!(ellipse, circle);
+    }
+
+    #[test]
+    fn test_draw_hollow_circle() {
+        let background = 1u8;
+        let outline = 7u8;
+        let size = 7u32;
+        let center = (3, 3);
+        let radius = 2;
+
+        let image = GrayImage::from_pixel(size, size, Luma([background]));
+
+        #[rustfmt::skip]
+        let expected = gray_image!(
+            background, background, background, background, background, background, background;
+            background, background, outline, outline, outline, background, background;
+            background, outline, background, background, background, outline, background;
+            background, outline, background, background, background, outline, background;
+            background, outline, background, background, background, outline, background;
+            background, background, outline, outline, outline, background, background;
+            background, background, background, background, background, background, background);
+
+        let actual = draw_hollow_circle(&image, center, radius, Luma([outline]));
+
+        assert_pixels_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_draw_hollow_circle_mut() {
+        let background = 1u8;
+        let outline = 5u8;
+        let size = 7u32;
+        let center = (3, 3);
+        let radius = 2;
+
+        let mut image = GrayImage::from_pixel(size, size, Luma([background]));
+
+        #[rustfmt::skip]
+        let expected = gray_image!(
+            background, background, background, background, background, background, background;
+            background, background, outline, outline, outline, background, background;
+            background, outline, background, background, background, outline, background;
+            background, outline, background, background, background, outline, background;
+            background, outline, background, background, background, outline, background;
+            background, background, outline, outline, outline, background, background;
+            background, background, background, background, background, background, background);
+
+        draw_hollow_circle_mut(&mut image, center, radius, Luma([outline]));
+
+        assert_pixels_eq!(image, expected);
+    }
+
+    #[test]
+    fn test_draw_filled_circle() {
+        let background = 1u8;
+        let fill = 4u8;
+        let size = 7u32;
+        let center = (3, 3);
+        let radius = 2;
+
+        let image = GrayImage::from_pixel(size, size, Luma([background]));
+
+        #[rustfmt::skip]
+        let expected = gray_image!(
+            background, background, background, background, background, background, background;
+            background, background, fill, fill, fill, background, background;
+            background, fill, fill, fill, fill, fill, background;
+            background, fill, fill, fill, fill, fill, background;
+            background, fill, fill, fill, fill, fill, background;
+            background, background, fill, fill, fill, background, background;
+            background, background, background, background, background, background, background);
+
+        let actual = draw_filled_circle(&image, center, radius, Luma([fill]));
+
+        assert_pixels_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_draw_filled_circle_mut() {
+        let background = 1u8;
+        let fill = 3u8;
+        let size = 7u32;
+        let center = (3, 3);
+        let radius = 2;
+
+        let mut image = GrayImage::from_pixel(size, size, Luma([background]));
+
+        #[rustfmt::skip]
+        let expected = gray_image!(
+            background, background, background, background, background, background, background;
+            background, background, fill, fill, fill, background, background;
+            background, fill, fill, fill, fill, fill, background;
+            background, fill, fill, fill, fill, fill, background;
+            background, fill, fill, fill, fill, fill, background;
+            background, background, fill, fill, fill, background, background;
+            background, background, background, background, background, background, background);
+
+        draw_filled_circle_mut(&mut image, center, radius, Luma([fill]));
+
+        assert_pixels_eq!(image, expected);
     }
 }
 

@@ -1,6 +1,6 @@
 use crate::definitions::Image;
-use crate::drawing::line::draw_line_segment_mut;
 use crate::drawing::Canvas;
+use crate::drawing::line::draw_line_segment_mut;
 use crate::rect::Rect;
 use image::GenericImage;
 use std::f32;
@@ -142,6 +142,34 @@ mod tests {
         draw_filled_rect_mut(&mut image, Rect::at(2, 2).of_size(1, 1), blue);
         assert_eq!(*image.0.get_pixel(2, 2), blue);
     }
+
+    #[test]
+    fn test_draw_hollow_rect_mut() {
+        let background = 1u8;
+        let outline = 4u8;
+        let size = 5u32;
+        let rect_left = 2;
+        let rect_top = 2;
+        let rect_width = 3u32;
+        let rect_height = 3u32;
+
+        let mut image = GrayImage::from_pixel(size, size, Luma([background]));
+
+        let expected = gray_image!(
+            background, background, background, background, background;
+            background, background, background, background, background;
+            background, background, outline, outline, outline;
+            background, background, outline, background, outline;
+            background, background, outline, outline, outline);
+
+        draw_hollow_rect_mut(
+            &mut image,
+            Rect::at(rect_left, rect_top).of_size(rect_width, rect_height),
+            Luma([outline]),
+        );
+
+        assert_pixels_eq!(image, expected);
+    }
 }
 
 #[cfg(not(miri))]
@@ -164,7 +192,7 @@ mod proptests {
             let color = Luma([color]);
 
             let out = draw_filled_rect(&image, rect, color);
-            assert_eq!(out.dimensions(), image.dimensions());
+            prop_assert_eq!(out.dimensions(), image.dimensions());
         }
     }
 }
@@ -175,7 +203,7 @@ mod benches {
     use super::*;
     use crate::rect::Rect;
     use image::{Rgb, RgbImage};
-    use test::{black_box, Bencher};
+    use test::{Bencher, black_box};
 
     #[bench]
     fn bench_draw_filled_rect_mut_rgb(b: &mut Bencher) {

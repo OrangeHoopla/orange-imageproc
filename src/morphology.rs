@@ -3,7 +3,7 @@
 //! [morphological operators]: https://homepages.inf.ed.ac.uk/rbf/HIPR2/morops.htm
 
 use crate::{
-    distance_transform::{distance_transform_impl, distance_transform_mut, DistanceFrom, Norm},
+    distance_transform::{DistanceFrom, Norm, distance_transform_impl, distance_transform_mut},
     point::Point,
 };
 use image::{GrayImage, Luma};
@@ -375,7 +375,7 @@ impl Mask {
         let center = Point::new(center_x, center_y).to_i16();
         let elements = image
             .enumerate_pixels()
-            .filter(|(_, _, &p)| p[0] != 0)
+            .filter(|&(_, _, &p)| p[0] != 0)
             .map(|(x, y, _)| Point::new(x, y).to_i16())
             .map(|p| p - center)
             .collect();
@@ -384,13 +384,12 @@ impl Mask {
 
     fn new(elements: Vec<Point<i16>>) -> Self {
         assert!(elements.len() <= (511 * 511) as usize);
-        debug_assert!(elements.iter().tuple_windows().all(|(a, b)| {
-            if a.y == b.y {
-                a.x < b.x
-            } else {
-                a.y < b.y
-            }
-        }));
+        debug_assert!(
+            elements
+                .iter()
+                .tuple_windows()
+                .all(|(a, b)| { if a.y == b.y { a.x < b.x } else { a.y < b.y } })
+        );
         Self { elements }
     }
 
@@ -1844,6 +1843,148 @@ mod tests {
         );
         assert_eq!(grayscale_erode(&image, &mask), dilated);
     }
+
+    #[test]
+    fn test_dilate_mut_matches_dilate() {
+        let mut image = gray_image!(
+              0,   0,   0,   0,   0;
+              0,   0,   0,   0,   0;
+              0,   0, 255,   0,   0;
+              0,   0,   0,   0,   0;
+              0,   0,   0,   0,   0
+        );
+        let expected = dilate(&image, Norm::LInf, 1);
+
+        dilate_mut(&mut image, Norm::LInf, 1);
+
+        assert_pixels_eq!(image, expected);
+    }
+
+    #[test]
+    fn test_erode_mut_matches_erode() {
+        let mut image = gray_image!(
+              0,   0,   0,   0,   0;
+              0, 255, 255, 255,   0;
+              0, 255, 255, 255,   0;
+              0, 255, 255, 255,   0;
+              0,   0,   0,   0,   0
+        );
+        let expected = erode(&image, Norm::LInf, 1);
+
+        erode_mut(&mut image, Norm::LInf, 1);
+
+        assert_pixels_eq!(image, expected);
+    }
+
+    #[test]
+    fn test_open_removes_small_cross() {
+        let image = gray_image!(
+              0,   0,   0,   0,   0;
+              0,   0, 255,   0,   0;
+              0, 255, 255, 255,   0;
+              0,   0, 255,   0,   0;
+              0,   0,   0,   0,   0
+        );
+        let expected = gray_image!(
+              0,   0,   0,   0,   0;
+              0,   0,   0,   0,   0;
+              0,   0,   0,   0,   0;
+              0,   0,   0,   0,   0;
+              0,   0,   0,   0,   0
+        );
+
+        assert_pixels_eq!(open(&image, Norm::LInf, 1), expected);
+    }
+
+    #[test]
+    fn test_open_mut_matches_open() {
+        let mut image = gray_image!(
+              0,   0,   0,   0,   0;
+              0, 255, 255, 255,   0;
+              0, 255, 255, 255,   0;
+              0, 255, 255, 255,   0;
+              0,   0,   0,   0,   0
+        );
+        let expected = open(&image, Norm::LInf, 1);
+
+        open_mut(&mut image, Norm::LInf, 1);
+
+        assert_pixels_eq!(image, expected);
+    }
+
+    #[test]
+    fn test_close_fills_small_hole() {
+        let image = gray_image!(
+            255, 255, 255, 255;
+            255,   0,   0, 255;
+            255,   0,   0, 255;
+            255, 255, 255, 255
+        );
+        let expected = gray_image!(
+            255, 255, 255, 255;
+            255, 255, 255, 255;
+            255, 255, 255, 255;
+            255, 255, 255, 255
+        );
+
+        assert_pixels_eq!(close(&image, Norm::LInf, 1), expected);
+    }
+
+    #[test]
+    fn test_close_mut_matches_close() {
+        let mut image = gray_image!(
+              0,   0,   0,   0,   0;
+              0,   0,   0,   0,   0;
+              0,   0, 255,   0,   0;
+              0,   0,   0,   0,   0;
+              0,   0,   0,   0,   0
+        );
+        let expected = close(&image, Norm::LInf, 1);
+
+        close_mut(&mut image, Norm::LInf, 1);
+
+        assert_pixels_eq!(image, expected);
+    }
+
+    #[test]
+    fn test_grayscale_open_expected_output() {
+        let image = gray_image!(
+          100,  99,  99,  99, 222,  99;
+           99,  99,  99, 222, 222, 222;
+           99,   7,  99,  99, 222,  99;
+            7,   7,   7,  99,  99,  99;
+           99,   7,  99,  99,  99,  99
+        );
+        let expected = gray_image!(
+           99,  99,  99,  99,  99,  99;
+           99,  99,  99,  99,  99,  99;
+            7,   7,  99,  99,  99,  99;
+            7,   7,   7,  99,  99,  99;
+            7,   7,   7,  99,  99,  99
+        );
+
+        assert_pixels_eq!(grayscale_open(&image, &Mask::square(1)), expected);
+    }
+
+    #[test]
+    fn test_grayscale_close_expected_output() {
+        let image = gray_image!(
+           50,  99,  99,  99, 222,  99;
+           99,  99,  99, 222, 222, 222;
+           99,   7,  99,  99, 222,  99;
+            7,   7,   7,  99,  99,  99;
+           99,   7,  99,  99,  99,  99
+        );
+        let expected = gray_image!(
+           99,  99,  99, 222, 222, 222;
+           99,  99,  99, 222, 222, 222;
+           99,  99,  99,  99, 222, 222;
+           99,  99,  99,  99,  99,  99;
+           99,  99,  99,  99,  99,  99
+        );
+
+        assert_pixels_eq!(grayscale_close(&image, &Mask::square(1)), expected);
+    }
 }
 
 #[cfg(not(miri))]
@@ -1900,7 +2041,7 @@ mod proptests {
         fn proptest_mask_disk(radius in any::<u8>()) {
             let actual = Mask::disk(radius);
             let expected = reference_mask_disk(radius);
-            assert_eq!(actual, expected);
+            prop_assert_eq!(actual, expected);
         }
     }
 }

@@ -2,7 +2,7 @@
 
 [![crates.io](https://img.shields.io/crates/v/imageproc.svg)](https://crates.io/crates/imageproc)
 [![doc-badge]][doc-link]
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/image-rs/imageproc/blob/master/LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/image-rs/imageproc/blob/main/LICENSE)
 [![Dependency status](https://deps.rs/repo/github/image-rs/imageproc/status.svg)](https://deps.rs/repo/github/image-rs/imageproc)
 
 An image processing library, based on the
@@ -47,13 +47,12 @@ always be faster - we recommend benchmarking for your specific use-case.
 ### Default Features
 
 - `rayon`: enables multi-threaded versions of several functions
+- `text`: enables text drawing
+- `fft`: enables `phash` and other functions that depend on the `rustfft` crate
 
 ### Optional Features
 
-- `katexit`: enables latex in documentation via
-  [katexit](https://github.com/termoshtt/katexit)
-- `display-window`: enables `sdl2`
-- `sdl2`: enables the displaying of images (using `imageproc::window`) with
+- `display-window`: enables the displaying of images (using `imageproc::window`) with
   [sdl2](https://github.com/Rust-SDL2/rust-sdl2)
 
 ## How to contribute

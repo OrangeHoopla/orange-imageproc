@@ -16,13 +16,15 @@ concurrency:
 name: safety
 jobs:
   sanitizers:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: true
       - name: Install nightly
-        uses: dtolnay/rust-toolchain@nightly
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly-2025-10-21        
       - run: |
             sudo apt update
             sudo apt install libsdl2-2.0-0 -y
@@ -48,33 +50,34 @@ jobs:
         run: cargo test --lib --tests --all-features --target x86_64-unknown-linux-gnu
         env:
           ASAN_OPTIONS: "detect_odr_violation=0:detect_leaks=0"
+          PROPTEST_RNG_SEED: 0
           RUSTFLAGS: "-Z sanitizer=address"
       - name: cargo test -Zsanitizer=leak
         if: always()
         run: cargo test --all-features --target x86_64-unknown-linux-gnu
         env:
           LSAN_OPTIONS: "suppressions=lsan-suppressions.txt"
+          PROPTEST_RNG_SEED: 0
           RUSTFLAGS: "-Z sanitizer=leak"
   miri:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: true
-      - run: |
-          echo "NIGHTLY=nightly-$(curl -s https://rust-lang.github.io/rustup-components-history/x86_64-unknown-linux-gnu/miri)" >> "$GITHUB_ENV"
-      - name: Install ${{ env.NIGHTLY }}
+      - name: Install nightly
         uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: ${{ env.NIGHTLY }}
+          toolchain: nightly-2025-10-21
           components: miri
       - name: Install cargo-nextest
-        uses: baptiste0928/cargo-install@v1
+        uses: baptiste0928/cargo-install@v3.3.2
         with:
           crate: cargo-nextest
-          locked: true
+          version: "0.9.122"
       - name: cargo miri test
         timeout-minutes: 120
         run: cargo miri nextest run --no-default-features --features=image/default
         env:
           MIRIFLAGS: ""
+          PROPTEST_RNG_SEED: 0

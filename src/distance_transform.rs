@@ -208,10 +208,12 @@ unsafe fn check(
     candidate_x: u32,
     candidate_y: u32,
 ) {
-    let current = image.unsafe_get_pixel(current_x, current_y)[0] as u16;
-    let candidate_incr = image.unsafe_get_pixel(candidate_x, candidate_y)[0] as u16 + 1;
-    if candidate_incr < current {
-        image.unsafe_put_pixel(current_x, current_y, Luma([candidate_incr as u8]));
+    unsafe {
+        let current = image.unsafe_get_pixel(current_x, current_y)[0] as u16;
+        let candidate_incr = image.unsafe_get_pixel(candidate_x, candidate_y)[0] as u16 + 1;
+        if candidate_incr < current {
+            image.unsafe_put_pixel(current_x, current_y, Luma([candidate_incr as u8]));
+        }
     }
 }
 
@@ -344,11 +346,7 @@ struct Column<'a> {
 impl Source for Column<'_> {
     fn get(&self, idx: usize) -> f64 {
         let pixel = unsafe { self.image.unsafe_get_pixel(self.column, idx as u32)[0] as f64 };
-        if pixel > 0f64 {
-            0f64
-        } else {
-            f64::INFINITY
-        }
+        if pixel > 0f64 { 0f64 } else { f64::INFINITY }
     }
     fn len(&self) -> usize {
         self.image.height() as usize
@@ -592,7 +590,7 @@ mod proptests {
             let actual = distance_transform_1d(&f);
             let expected = distance_transform_1d_reference(&f);
 
-            assert_eq!(actual, expected);
+            prop_assert_eq!(actual, expected);
         }
 
         #[test]
@@ -600,7 +598,7 @@ mod proptests {
             let expected = euclidean_squared_distance_transform_reference(&image);
             let actual = euclidean_squared_distance_transform(&image);
 
-            assert_eq!(actual, expected)
+            prop_assert_eq!(actual, expected)
         }
     }
 }
@@ -610,7 +608,7 @@ mod proptests {
 mod benches {
     use super::*;
     use crate::utils::gray_bench_image;
-    use test::{black_box, Bencher};
+    use test::{Bencher, black_box};
 
     macro_rules! bench_euclidean_squared_distance_transform {
         ($name:ident, side: $s:expr) => {

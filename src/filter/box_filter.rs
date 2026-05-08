@@ -116,7 +116,7 @@ mod proptests {
             y_radius in 0..100u32,
         ) {
             let out = box_filter(&img, x_radius, y_radius);
-            assert_eq!(out.dimensions(), img.dimensions());
+            prop_assert_eq!(out.dimensions(), img.dimensions());
         }
     }
 }
@@ -126,7 +126,7 @@ mod proptests {
 mod benches {
     use super::*;
     use crate::utils::gray_bench_image;
-    use test::{black_box, Bencher};
+    use test::{Bencher, black_box};
 
     #[bench]
     fn bench_box_filter(b: &mut Bencher) {
