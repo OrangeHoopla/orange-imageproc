@@ -28,6 +28,7 @@ pub mod contrast;
 pub mod corners;
 pub mod definitions;
 pub mod distance_transform;
+pub mod watershed;
 pub mod drawing;
 pub mod edges;
 pub mod filter;

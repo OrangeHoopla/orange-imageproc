@@ -18,6 +18,12 @@ rayon = ["dep:rayon", "image/rayon"]
 fft = ["dep:rustdct"]
 text = ["dep:ab_glyph"]
 
+# Option: enable phash
+fft = ["dep:rustdct"]
+
+# Option: enable drawing::text
+text = ["dep:ab_glyph"]
+
 [dependencies]
 ab_glyph = { version = "0.2.23", default-features = false, features = ["std"], optional = true}
 approx = { version = "0.5", default-features = false }

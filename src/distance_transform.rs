@@ -88,19 +88,22 @@ pub enum Norm {
 ///
 /// # }
 /// ```
-pub fn distance_transform(image: &GrayImage, norm: Norm) -> GrayImage {
+pub fn distance_transform(image: &GrayImage, norm: Norm, from: DistanceFrom) -> GrayImage {
     let mut out = image.clone();
-    distance_transform_mut(&mut out, norm);
+    distance_transform_mut(&mut out, norm, from);
     out
 }
 #[doc=generate_mut_doc_comment!("distance_transform")]
-pub fn distance_transform_mut(image: &mut GrayImage, norm: Norm) {
-    distance_transform_impl(image, norm, DistanceFrom::Foreground);
+pub fn distance_transform_mut(image: &mut GrayImage, norm: Norm,from: DistanceFrom) {
+    distance_transform_impl(image, norm, from);
 }
 
+#[doc=generate_mut_doc_comment!("DistanceFrom")]
 #[derive(PartialEq, Eq, Copy, Clone)]
-pub(crate) enum DistanceFrom {
+pub enum DistanceFrom {
+    #[doc=generate_mut_doc_comment!("Foreground")]
     Foreground,
+    #[doc=generate_mut_doc_comment!("Background")]
     Background,
 }
 
@@ -456,7 +459,7 @@ mod tests {
         // Distances should not overflow
         let expected = GrayImage::from_fn(300, 3, |x, y| Luma([min(255, max(x, y)) as u8]));
 
-        let distances = distance_transform(&image, Norm::LInf);
+        let distances = distance_transform(&image, Norm::LInf,DistanceFrom::Foreground);
         assert_pixels_eq!(distances, expected);
     }
 
@@ -630,7 +633,7 @@ mod benches {
             fn $name(b: &mut Bencher) {
                 let image = gray_bench_image($s, $s);
                 b.iter(|| {
-                    let distance = distance_transform(&image, $norm);
+                    let distance = distance_transform(&image, $norm,DistanceFrom::Foreground);
                     black_box(distance);
                 })
             }
