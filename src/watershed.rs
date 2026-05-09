@@ -6,7 +6,7 @@ use image::{DynamicImage, GrayImage, ImageBuffer, Luma, Rgb};
 
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
-struct Pixel {
+private struct Pixel {
     cost: u8,
     position: (u32,u32),
 }
